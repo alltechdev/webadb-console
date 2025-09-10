@@ -1,0 +1,591 @@
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    line-height: 1.6;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: #333;
+}
+
+/* Container */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Header */
+.header {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 1rem 0;
+}
+
+.header .container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.logo-text h1 {
+    color: white;
+    font-weight: 600;
+    font-size: 1.8rem;
+}
+
+/* Main content */
+.main {
+    padding: 2rem 0;
+}
+
+/* Cards */
+.card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.15);
+}
+
+/* Status Card */
+.device-status {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.status-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.status-icon.disconnected {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+    color: white;
+}
+
+.status-icon.connected {
+    background: linear-gradient(135deg, #00b894, #00a085);
+    color: white;
+}
+
+.status-info {
+    flex: 1;
+}
+
+.status-info h3 {
+    font-size: 1.4rem;
+    margin-bottom: 0.5rem;
+    color: #2c3e50;
+}
+
+.status-info p {
+    color: #7f8c8d;
+    margin-bottom: 1rem;
+}
+
+.device-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.info-item {
+    color: #34495e;
+    font-size: 0.9rem;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    min-height: 44px;
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: linear-gradient(135deg, #5a6fd8, #6a419a);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #00b894, #00a085);
+    color: white;
+}
+
+.btn-success:hover:not(:disabled) {
+    background: linear-gradient(135deg, #00a085, #008f75);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 184, 148, 0.3);
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #74b9ff, #0984e3);
+    color: white;
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: linear-gradient(135deg, #0984e3, #074da1);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(116, 185, 255, 0.3);
+}
+
+.btn-lg {
+    padding: 0.875rem 2rem;
+    font-size: 1rem;
+}
+
+/* Console */
+.console-header {
+    margin-bottom: 2rem;
+}
+
+.console-header h2 {
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+    font-size: 1.5rem;
+}
+
+.console-header p {
+    color: #7f8c8d;
+}
+
+.command-input-container {
+    margin-bottom: 2rem;
+}
+
+.input-group {
+    display: flex;
+    align-items: center;
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    padding: 0.5rem;
+    transition: border-color 0.3s ease;
+}
+
+.input-group:focus-within {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.input-prefix {
+    background: #667eea;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-right: 0.75rem;
+}
+
+.command-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 0.75rem;
+    font-size: 1rem;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    outline: none;
+}
+
+.command-input::placeholder {
+    color: #adb5bd;
+}
+
+.console-output-container h3 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+}
+
+.console-output {
+    background: #1e1e1e;
+    color: #f8f9fa;
+    border-radius: 8px;
+    padding: 1.5rem;
+    max-height: 400px;
+    overflow-y: auto;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+    border: 1px solid #343a40;
+}
+
+.console-entry {
+    margin-bottom: 0.5rem;
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+
+.console-timestamp {
+    color: #6c757d;
+    font-size: 0.8rem;
+    font-weight: 500;
+    min-width: 60px;
+}
+
+.console-message {
+    flex: 1;
+}
+
+.console-entry.info .console-timestamp {
+    color: #17a2b8;
+}
+
+.console-entry.success .console-timestamp {
+    color: #28a745;
+}
+
+.console-entry.warning .console-timestamp {
+    color: #ffc107;
+}
+
+.console-entry.error .console-timestamp {
+    color: #dc3545;
+}
+
+.console-entry.command .console-timestamp {
+    color: #667eea;
+}
+
+.console-entry.output .console-timestamp {
+    color: #f8f9fa;
+}
+
+.console-footer {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+/* Mode Selector */
+.mode-card {
+    padding: 1rem 2rem;
+}
+
+.mode-selector {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.mode-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    background: #f8f9fa;
+    color: #495057;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.mode-btn:hover {
+    background: #e9ecef;
+    transform: translateY(-2px);
+}
+
+.mode-btn.active {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* File Upload Area */
+.file-upload-area {
+    border: 2px dashed #dee2e6;
+    border-radius: 12px;
+    padding: 3rem 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    margin-bottom: 2rem;
+}
+
+.file-upload-area:hover {
+    border-color: #667eea;
+    background: rgba(102, 126, 234, 0.05);
+}
+
+.file-upload-area.drag-over {
+    border-color: #667eea;
+    background: rgba(102, 126, 234, 0.1);
+    transform: scale(1.02);
+}
+
+.file-upload-area svg {
+    color: #6c757d;
+    margin-bottom: 1rem;
+}
+
+.file-upload-area p {
+    margin: 0.5rem 0;
+    color: #495057;
+}
+
+.file-types {
+    font-size: 0.85rem;
+    color: #6c757d !important;
+}
+
+/* Flash Queue */
+.flash-queue h3 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+}
+
+.flash-list {
+    margin-bottom: 1.5rem;
+}
+
+.flash-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+}
+
+.flash-item-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+}
+
+.flash-item-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.8rem;
+}
+
+.flash-item-details h4 {
+    margin: 0 0 0.25rem 0;
+    color: #2c3e50;
+    font-size: 1rem;
+}
+
+.flash-item-details p {
+    margin: 0;
+    color: #6c757d;
+    font-size: 0.85rem;
+}
+
+.flash-item-remove {
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.flash-item-remove:hover {
+    background: #c82333;
+}
+
+.flash-controls {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.partition-selector {
+    margin-top: 1rem;
+}
+
+.partition-selector label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #495057;
+}
+
+.partition-selector select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    background: white;
+    font-size: 0.9rem;
+}
+
+/* Instructions Card */
+.instructions-content ol {
+    margin-left: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.instructions-content li {
+    margin-bottom: 0.75rem;
+    color: #495057;
+    line-height: 1.6;
+}
+
+.browser-support {
+    background: #e3f2fd;
+    border-left: 4px solid #2196f3;
+    padding: 1rem;
+    border-radius: 4px;
+}
+
+.browser-support p {
+    color: #1565c0;
+    margin: 0;
+}
+
+/* Footer */
+.footer {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 1.5rem 0;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Spinner animation */
+.spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Scrollbar styling for console */
+.console-output::-webkit-scrollbar {
+    width: 8px;
+}
+
+.console-output::-webkit-scrollbar-track {
+    background: #2c3e50;
+    border-radius: 4px;
+}
+
+.console-output::-webkit-scrollbar-thumb {
+    background: #667eea;
+    border-radius: 4px;
+}
+
+.console-output::-webkit-scrollbar-thumb:hover {
+    background: #5a6fd8;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .container {
+        padding: 0 15px;
+    }
+    
+    .device-status {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+    
+    .console-footer {
+        justify-content: center;
+    }
+    
+    .btn-lg {
+        padding: 0.75rem 1.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .card {
+        padding: 1.5rem;
+    }
+    
+    .device-info {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .input-group {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .input-prefix {
+        margin-right: 0;
+    }
+    
+    .command-input {
+        min-width: 200px;
+    }
+    
+    .console-footer {
+        flex-direction: column;
+        align-items: center;
+    }
+}

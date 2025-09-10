@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web ADB Console</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="logo-text">
+                <h1>Web ADB Console</h1>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="container">
+            <!-- Connection Status Card -->
+            <div class="card status-card">
+                <div class="device-status" id="deviceStatus">
+                    <div class="status-icon disconnected">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                            <line x1="12" y1="18" x2="12.01" y2="18"></line>
+                        </svg>
+                    </div>
+                    <div class="status-info">
+                        <h3 id="statusTitle">No Device Connected</h3>
+                        <p id="statusMessage">Connect your Android device via USB to begin</p>
+                        <div id="deviceInfo" class="device-info hidden">
+                            <span class="info-item">Model: <strong id="deviceModel">-</strong></span>
+                            <span class="info-item">Android: <strong id="androidVersion">-</strong></span>
+                            <span class="info-item">Serial: <strong id="deviceSerial">-</strong></span>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-primary" id="connectBtn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 16V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9m16 0H4m16 0l1.28 2.55a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45L4 16"></path>
+                    </svg>
+                    Connect
+                </button>
+            </div>
+
+            <!-- Mode Selector -->
+            <div class="card mode-card">
+                <div class="mode-selector">
+                    <button class="mode-btn active" data-mode="adb" id="adbModeBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                            <line x1="8" y1="21" x2="16" y2="21"></line>
+                            <line x1="12" y1="17" x2="12" y2="21"></line>
+                        </svg>
+                        ADB Mode
+                    </button>
+                    <button class="mode-btn" data-mode="fastboot" id="fastbootModeBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                        </svg>
+                        Fastboot Mode
+                    </button>
+                </div>
+            </div>
+
+            <!-- ADB Console Card -->
+            <div class="card console-card" id="adbConsoleCard">
+                <div class="console-header">
+                    <h2>ADB Console</h2>
+                    <p>Execute ADB shell commands directly from your browser</p>
+                </div>
+
+                <div class="command-input-container">
+                    <div class="input-group">
+                        <span class="input-prefix" id="commandPrefix">adb shell</span>
+                        <input type="text" id="commandInput" class="command-input" placeholder="Enter ADB command..." autocomplete="off">
+                        <button class="btn btn-primary" id="executeBtn" disabled>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="5,3 19,12 5,21"></polygon>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="console-output-container">
+                    <h3>Console Output</h3>
+                    <div class="console-output" id="consoleOutput">
+                        <div class="console-entry info">
+                            <span class="console-timestamp">[INFO]</span>
+                            <span class="console-message">Web ADB Console ready. Connect your device to start.</span>
+                        </div>
+                    </div>
+                    <div class="console-footer">
+                        <button class="btn btn-success btn-lg" id="copyConsoleBtn">Copy Output</button>
+                        <button class="btn btn-secondary btn-lg" id="clearConsoleBtn">Clear Output</button>
+                        <button class="btn btn-primary btn-lg" id="downloadConsoleBtn">Download Output</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fastboot Console Card -->
+            <div class="card console-card hidden" id="fastbootConsoleCard">
+                <div class="console-header">
+                    <h2>Fastboot Console</h2>
+                    <p>Flash firmware images and manage bootloader</p>
+                </div>
+
+                <div class="command-input-container">
+                    <div class="input-group">
+                        <span class="input-prefix" id="fastbootPrefix">fastboot</span>
+                        <input type="text" id="fastbootCommandInput" class="command-input" placeholder="Enter Fastboot command..." autocomplete="off">
+                        <button class="btn btn-primary" id="fastbootExecuteBtn" disabled>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="5,3 19,12 5,21"></polygon>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- File Flashing Card -->
+            <div class="card file-flash-card">
+                <div class="console-header">
+                    <h2>File Flashing</h2>
+                    <p>Upload and flash firmware images to your device</p>
+                </div>
+
+                <div class="file-upload-area" id="fileUploadArea">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7,10 12,15 17,10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    <p>Drop firmware files here or click to browse</p>
+                    <p class="file-types">Supports: .img, .zip, .bin files</p>
+                    <input type="file" id="fileInput" accept=".img,.zip,.bin" multiple style="display: none;">
+                </div>
+
+                <div class="flash-queue" id="flashQueue" style="display: none;">
+                    <h3>Flash Queue</h3>
+                    <div id="flashList"></div>
+                    <div class="flash-controls">
+                        <button class="btn btn-success" id="flashAllBtn">Flash All</button>
+                        <button class="btn btn-secondary" id="clearQueueBtn">Clear Queue</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Instructions Card -->
+            <div class="card instructions-card">
+                <div class="console-header">
+                    <h2>How to Use</h2>
+                </div>
+                <div class="instructions-content">
+                    <ol>
+                        <li><strong>Enable USB Debugging:</strong> Go to Settings → About Phone → Tap Build Number 7 times → Developer Options → Enable USB Debugging</li>
+                        <li><strong>Connect Device:</strong> Connect your Android device via USB cable</li>
+                        <li><strong>Grant Permission:</strong> Click "Connect" and select your device from the browser prompt</li>
+                        <li><strong>Authorize:</strong> Tap "Allow" on your device when prompted</li>
+                        <li><strong>Execute Commands:</strong> Type ADB shell commands and press Enter or click Execute</li>
+                    </ol>
+                    <div class="browser-support">
+                        <p><strong>Browser Support:</strong> Chrome 61+, Edge 79+, or other Chromium-based browsers with WebUSB support</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 Web ADB Console. Built with WebUSB and modern web technologies.</p>
+        </div>
+    </footer>
+
+    <script src="webadb-console.js" type="module"></script>
+</body>
+</html>
