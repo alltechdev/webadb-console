@@ -47,32 +47,6 @@
                 </button>
             </div>
 
-            <!-- Mode Selector -->
-            <div class="card mode-card">
-                <div class="mode-selector">
-                    <button class="mode-btn active" data-mode="adb" id="adbModeBtn">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                            <line x1="8" y1="21" x2="16" y2="21"></line>
-                            <line x1="12" y1="17" x2="12" y2="21"></line>
-                        </svg>
-                        ADB Mode
-                    </button>
-                    <button class="mode-btn" data-mode="fastboot" id="fastbootModeBtn">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                        </svg>
-                        Fastboot Mode
-                    </button>
-                    <button class="mode-btn" data-mode="scrcpy" id="scrcpyModeBtn">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                            <circle cx="12" cy="10" r="3"></circle>
-                        </svg>
-                        Scrcpy Mode
-                    </button>
-                </div>
-            </div>
 
             <!-- ADB Console Card -->
             <div class="card console-card" id="adbConsoleCard">
@@ -83,7 +57,8 @@
 
                 <div class="command-input-container">
                     <div class="input-group">
-                        <input type="text" id="commandInput" class="command-input" placeholder="Enter full ADB command (e.g., adb shell getprop ro.product.model)..." autocomplete="off">
+                        <span class="input-prefix">adb shell</span>
+                        <input type="text" id="commandInput" class="command-input" placeholder="Enter ADB command..." autocomplete="off">
                         <button class="btn btn-primary" id="executeBtn" disabled>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polygon points="5,3 19,12 5,21"></polygon>
@@ -104,84 +79,6 @@
                 </div>
             </div>
 
-            <!-- Fastboot Console Card -->
-            <div class="card console-card hidden" id="fastbootConsoleCard">
-                <div class="console-header">
-                    <h2>Fastboot Console</h2>
-                    <p>Flash firmware images and manage bootloader</p>
-                </div>
-
-                <div class="command-input-container">
-                    <div class="input-group">
-                        <input type="text" id="fastbootCommandInput" class="command-input" placeholder="Enter full fastboot command (e.g., fastboot devices)..." autocomplete="off">
-                        <button class="btn btn-primary" id="fastbootExecuteBtn" disabled>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polygon points="5,3 19,12 5,21"></polygon>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="console-output-container">
-                    <h3>Console Output</h3>
-                    <div class="console-output" id="fastbootConsoleOutput">
-                    </div>
-                    <div class="console-footer">
-                        <button class="btn btn-success btn-lg" id="copyFastbootConsoleBtn">Copy Output</button>
-                        <button class="btn btn-secondary btn-lg" id="clearFastbootConsoleBtn">Clear Output</button>
-                        <button class="btn btn-primary btn-lg" id="downloadFastbootConsoleBtn">Download Output</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Scrcpy Console Card -->
-            <div class="card console-card hidden" id="scrcpyConsoleCard">
-                <div class="console-header">
-                    <h2>Scrcpy Screen Mirror</h2>
-                    <p>Mirror and control your Android device screen</p>
-                </div>
-
-                <div class="scrcpy-controls">
-                    <button class="btn btn-primary btn-lg" id="startScrcpyBtn" disabled>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polygon points="5,3 19,12 5,21"></polygon>
-                        </svg>
-                        Start Screen Mirror
-                    </button>
-                    <button class="btn btn-secondary btn-lg" id="stopScrcpyBtn" disabled>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="6" y="6" width="12" height="12"></rect>
-                        </svg>
-                        Stop Mirror
-                    </button>
-                </div>
-
-                <div class="scrcpy-display-container">
-                    <div class="scrcpy-display" id="scrcpyDisplay">
-                        <div class="scrcpy-placeholder">
-                            <svg width="96" height="96" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-                                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                                <line x1="8" y1="21" x2="16" y2="21"></line>
-                                <line x1="12" y1="17" x2="12" y2="21"></line>
-                            </svg>
-                            <p>Device screen will appear here</p>
-                            <p class="note">Connect device and start screen mirror to begin</p>
-                        </div>
-                        <canvas id="scrcpyCanvas" style="display: none; max-width: 100%; height: auto;"></canvas>
-                    </div>
-                </div>
-
-                <div class="console-output-container">
-                    <h3>Console Output</h3>
-                    <div class="console-output" id="scrcpyConsoleOutput">
-                    </div>
-                    <div class="console-footer">
-                        <button class="btn btn-success btn-lg" id="copyScrcpyConsoleBtn">Copy Output</button>
-                        <button class="btn btn-secondary btn-lg" id="clearScrcpyConsoleBtn">Clear Output</button>
-                        <button class="btn btn-primary btn-lg" id="downloadScrcpyConsoleBtn">Download Output</button>
-                    </div>
-                </div>
-            </div>
 
             <!-- File Flashing Card -->
             <div class="card file-flash-card">

@@ -32,21 +32,10 @@ class WebAdbConsole {
         // Connection button
         document.getElementById('connectBtn')?.addEventListener('click', () => this.handleConnect());
 
-        // Mode switching
-        document.getElementById('adbModeBtn')?.addEventListener('click', () => this.switchMode('adb'));
-        document.getElementById('fastbootModeBtn')?.addEventListener('click', () => this.switchMode('fastboot'));
-        document.getElementById('scrcpyModeBtn')?.addEventListener('click', () => this.switchMode('scrcpy'));
-
         // ADB Console
         document.getElementById('executeBtn')?.addEventListener('click', () => this.executeCommand());
         document.getElementById('commandInput')?.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.executeCommand();
-        });
-
-        // Fastboot Console
-        document.getElementById('fastbootExecuteBtn')?.addEventListener('click', () => this.executeFastbootCommand());
-        document.getElementById('fastbootCommandInput')?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.executeFastbootCommand();
         });
 
         // Console controls
@@ -54,17 +43,6 @@ class WebAdbConsole {
         document.getElementById('downloadConsoleBtn')?.addEventListener('click', () => this.downloadConsoleOutput());
         document.getElementById('copyConsoleBtn')?.addEventListener('click', () => this.copyConsoleOutput());
 
-        // Fastboot console controls
-        document.getElementById('clearFastbootConsoleBtn')?.addEventListener('click', () => this.clearFastbootConsole());
-        document.getElementById('downloadFastbootConsoleBtn')?.addEventListener('click', () => this.downloadFastbootConsoleOutput());
-        document.getElementById('copyFastbootConsoleBtn')?.addEventListener('click', () => this.copyFastbootConsoleOutput());
-
-        // Scrcpy controls
-        document.getElementById('startScrcpyBtn')?.addEventListener('click', () => this.startScrcpy());
-        document.getElementById('stopScrcpyBtn')?.addEventListener('click', () => this.stopScrcpy());
-        document.getElementById('clearScrcpyConsoleBtn')?.addEventListener('click', () => this.clearScrcpyConsole());
-        document.getElementById('downloadScrcpyConsoleBtn')?.addEventListener('click', () => this.downloadScrcpyConsoleOutput());
-        document.getElementById('copyScrcpyConsoleBtn')?.addEventListener('click', () => this.copyScrcpyConsoleOutput());
 
         // File flashing
         const fileUploadArea = document.getElementById('fileUploadArea');
@@ -231,15 +209,6 @@ class WebAdbConsole {
         const executeBtn = document.getElementById('executeBtn');
         if (executeBtn) executeBtn.disabled = true;
 
-        const fastbootExecuteBtn = document.getElementById('fastbootExecuteBtn');
-        if (fastbootExecuteBtn) fastbootExecuteBtn.disabled = true;
-        
-        const startScrcpyBtn = document.getElementById('startScrcpyBtn');
-        if (startScrcpyBtn) startScrcpyBtn.disabled = true;
-        
-        const stopScrcpyBtn = document.getElementById('stopScrcpyBtn');
-        if (stopScrcpyBtn) stopScrcpyBtn.disabled = true;
-
         this.logToConsole('Device disconnected', 'warning');
     }
 
@@ -265,15 +234,6 @@ class WebAdbConsole {
         
         const executeBtn = document.getElementById('executeBtn');
         if (executeBtn) executeBtn.disabled = false;
-        
-        const fastbootExecuteBtn = document.getElementById('fastbootExecuteBtn');
-        if (fastbootExecuteBtn) fastbootExecuteBtn.disabled = false;
-        
-        const startScrcpyBtn = document.getElementById('startScrcpyBtn');
-        if (startScrcpyBtn) {
-            startScrcpyBtn.disabled = false;
-            console.log('Scrcpy start button enabled - device connected');
-        }
         
         this.logToConsole('Device connected and ready', 'success');
     }
@@ -304,8 +264,8 @@ class WebAdbConsole {
 
     async executeCommand() {
         const commandInput = document.getElementById('commandInput');
-        const fullCommand = commandInput?.value.trim();
-        if (!fullCommand) return;
+        const command = commandInput?.value.trim();
+        if (!command) return;
 
         if (!this.adb) {
             this.logToConsole('ERROR: No device connected', 'error');
@@ -323,48 +283,14 @@ class WebAdbConsole {
         }
 
         try {
-            this.logToConsole(`$ ${fullCommand}`, 'command');
+            this.logToConsole(`$ adb shell ${command}`, 'command');
             
-            // Validate that command starts with 'adb'
-            if (!fullCommand.startsWith('adb ')) {
-                this.logToConsole('ERROR: Command must start with "adb" (e.g., "adb shell getprop")', 'error');
-                throw new Error('Invalid command format');
-            }
-            
-            // Parse the command to extract the shell part
-            let command = fullCommand;
-            if (fullCommand.startsWith('adb shell ')) {
-                command = fullCommand.substring('adb shell '.length);
-            } else if (fullCommand.startsWith('adb ')) {
-                // Handle other adb commands
-                const adbCommand = fullCommand.substring('adb '.length);
-                if (adbCommand === 'devices') {
-                    this.logToConsole(`${this.device.serial || 'unknown'}\tdevice`, 'output');
-                } else if (adbCommand.startsWith('install ')) {
-                    this.logToConsole('APK installation not supported in this mode. Use file flashing.', 'warning');
-                } else if (adbCommand.startsWith('reboot')) {
-                    const result = await this.executeShellCommand(adbCommand);
-                    this.logToConsole('Device rebooting...', 'info');
-                    if (adbCommand.includes('bootloader')) {
-                        this.logToConsole('Device will enter fastboot/bootloader mode', 'info');
-                    }
-                } else {
-                    command = adbCommand;
-                    const result = await this.executeShellCommand(command);
-                    if (result.trim()) {
-                        this.logToConsole(result, 'output');
-                    } else {
-                        this.logToConsole('(no output)', 'info');
-                    }
-                }
+            // Execute the command directly as a shell command
+            const result = await this.executeShellCommand(command);
+            if (result.trim()) {
+                this.logToConsole(result, 'output');
             } else {
-                // Assume it's a shell command if no adb prefix
-                const result = await this.executeShellCommand(command);
-                if (result.trim()) {
-                    this.logToConsole(result, 'output');
-                } else {
-                    this.logToConsole('(no output)', 'info');
-                }
+                this.logToConsole('(no output)', 'info');
             }
         } catch (error) {
             this.logToConsole(`ERROR: ${error.message}`, 'error');
