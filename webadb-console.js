@@ -17,7 +17,6 @@ class WebAdbConsole {
     async init() {
         this.checkWebUSBSupport();
         this.setupEventListeners();
-        this.logToConsole('Web ADB Console initialized', 'info');
         await this.tryAutoConnect();
     }
 
