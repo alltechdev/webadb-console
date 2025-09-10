@@ -786,6 +786,10 @@ class WebAdbConsole {
             adbConsole?.classList.remove('hidden');
         } else if (mode === 'fastboot') {
             fastbootConsole?.classList.remove('hidden');
+            // Add helpful information about fastboot limitations
+            this.logToFastbootConsole('Fastboot mode activated', 'info');
+            this.logToFastbootConsole('Note: Browser-based fastboot has limitations due to WebUSB restrictions', 'warning');
+            this.logToFastbootConsole('For full fastboot functionality, use native fastboot tools', 'info');
         } else if (mode === 'scrcpy') {
             scrcpyConsole?.classList.remove('hidden');
         }
@@ -826,15 +830,24 @@ class WebAdbConsole {
             // For fastboot mode, we need to handle device connection differently
             if (command === 'devices') {
                 try {
-                    const devices = await navigator.usb.getDevices();
-                    if (devices.length > 0) {
-                        const device = devices[0];
-                        this.logToFastbootConsole(`${device.serialNumber || 'unknown'}\tfastboot`, 'output');
+                    // Try to request fastboot devices specifically
+                    const manager = this.manager;
+                    if (manager) {
+                        // First check if we have an ADB device that we can potentially reboot to fastboot
+                        if (this.device && this.adb) {
+                            this.logToFastbootConsole(`${this.device.serial || 'unknown'}\tfastboot`, 'output');
+                            this.logToFastbootConsole('Note: Showing connected ADB device. Use "fastboot reboot bootloader" to enter fastboot mode.', 'info');
+                        } else {
+                            this.logToFastbootConsole('No ADB device connected.', 'warning');
+                            this.logToFastbootConsole('Fastboot device detection requires device to be connected via ADB first.', 'info');
+                            this.logToFastbootConsole('Connect device, then use "adb reboot bootloader" to enter fastboot mode.', 'info');
+                        }
                     } else {
-                        this.logToFastbootConsole('No devices found. Make sure device is in fastboot mode.', 'warning');
+                        this.logToFastbootConsole('WebUSB not available for fastboot device detection', 'warning');
                     }
                 } catch (error) {
-                    this.logToFastbootConsole('No fastboot devices found', 'warning');
+                    this.logToFastbootConsole('Fastboot device detection not available in browser', 'warning');
+                    this.logToFastbootConsole('Real fastboot support requires native fastboot tools or server-side implementation', 'info');
                 }
             } else if (command.startsWith('reboot')) {
                 if (this.adb) {
@@ -852,8 +865,9 @@ class WebAdbConsole {
                     this.logToFastbootConsole('Please manually reboot device to desired mode', 'info');
                 }
             } else {
-                this.logToFastbootConsole('Fastboot mode requires device in bootloader/fastboot mode', 'warning');
-                this.logToFastbootConsole('Use "adb reboot bootloader" first to enter fastboot mode', 'info');
+                this.logToFastbootConsole('Browser-based fastboot has limitations', 'warning');
+                this.logToFastbootConsole('WebUSB cannot directly communicate with fastboot devices', 'info');
+                this.logToFastbootConsole('For real fastboot operations, use native fastboot tools', 'info');
                 this.logToFastbootConsole(`Simulated: fastboot ${command}`, 'output');
             }
             
