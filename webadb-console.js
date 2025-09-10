@@ -270,7 +270,10 @@ class WebAdbConsole {
         if (fastbootExecuteBtn) fastbootExecuteBtn.disabled = false;
         
         const startScrcpyBtn = document.getElementById('startScrcpyBtn');
-        if (startScrcpyBtn) startScrcpyBtn.disabled = false;
+        if (startScrcpyBtn) {
+            startScrcpyBtn.disabled = false;
+            console.log('Scrcpy start button enabled - device connected');
+        }
         
         this.logToConsole('Device connected and ready', 'success');
     }
@@ -679,8 +682,10 @@ class WebAdbConsole {
     }
 
     async startScrcpy() {
+        console.log('startScrcpy called - this.adb:', !!this.adb, 'this.device:', !!this.device);
         if (!this.adb) {
             this.logToScrcpyConsole('Please connect device first', 'error');
+            this.logToScrcpyConsole('Device connection status: ' + (this.device ? 'Device object exists' : 'No device object'), 'info');
             return;
         }
 
