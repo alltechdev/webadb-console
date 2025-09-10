@@ -231,6 +231,15 @@ class WebAdbConsole {
         const executeBtn = document.getElementById('executeBtn');
         if (executeBtn) executeBtn.disabled = true;
 
+        const fastbootExecuteBtn = document.getElementById('fastbootExecuteBtn');
+        if (fastbootExecuteBtn) fastbootExecuteBtn.disabled = true;
+        
+        const startScrcpyBtn = document.getElementById('startScrcpyBtn');
+        if (startScrcpyBtn) startScrcpyBtn.disabled = true;
+        
+        const stopScrcpyBtn = document.getElementById('stopScrcpyBtn');
+        if (stopScrcpyBtn) stopScrcpyBtn.disabled = true;
+
         this.logToConsole('Device disconnected', 'warning');
     }
 
@@ -256,6 +265,12 @@ class WebAdbConsole {
         
         const executeBtn = document.getElementById('executeBtn');
         if (executeBtn) executeBtn.disabled = false;
+        
+        const fastbootExecuteBtn = document.getElementById('fastbootExecuteBtn');
+        if (fastbootExecuteBtn) fastbootExecuteBtn.disabled = false;
+        
+        const startScrcpyBtn = document.getElementById('startScrcpyBtn');
+        if (startScrcpyBtn) startScrcpyBtn.disabled = false;
         
         this.logToConsole('Device connected and ready', 'success');
     }
