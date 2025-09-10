@@ -274,8 +274,8 @@ class WebAdbConsole {
 
     async executeCommand() {
         const commandInput = document.getElementById('commandInput');
-        const command = commandInput?.value.trim();
-        if (!command) return;
+        const fullCommand = commandInput?.value.trim();
+        if (!fullCommand) return;
 
         if (!this.adb) {
             this.logToConsole('ERROR: No device connected', 'error');
@@ -293,12 +293,42 @@ class WebAdbConsole {
         }
 
         try {
-            this.logToConsole(`$ adb shell ${command}`, 'command');
-            const result = await this.executeShellCommand(command);
-            if (result.trim()) {
-                this.logToConsole(result, 'output');
+            this.logToConsole(`$ ${fullCommand}`, 'command');
+            
+            // Parse the command to extract the shell part
+            let command = fullCommand;
+            if (fullCommand.startsWith('adb shell ')) {
+                command = fullCommand.substring('adb shell '.length);
+            } else if (fullCommand.startsWith('adb ')) {
+                // Handle other adb commands
+                const adbCommand = fullCommand.substring('adb '.length);
+                if (adbCommand === 'devices') {
+                    this.logToConsole(`${this.device.serial || 'unknown'}\tdevice`, 'output');
+                } else if (adbCommand.startsWith('install ')) {
+                    this.logToConsole('APK installation not supported in this mode. Use file flashing.', 'warning');
+                } else if (adbCommand.startsWith('reboot')) {
+                    const result = await this.executeShellCommand(adbCommand);
+                    this.logToConsole('Device rebooting...', 'info');
+                    if (adbCommand.includes('bootloader')) {
+                        this.logToConsole('Device will enter fastboot/bootloader mode', 'info');
+                    }
+                } else {
+                    command = adbCommand;
+                    const result = await this.executeShellCommand(command);
+                    if (result.trim()) {
+                        this.logToConsole(result, 'output');
+                    } else {
+                        this.logToConsole('(no output)', 'info');
+                    }
+                }
             } else {
-                this.logToConsole('(no output)', 'info');
+                // Assume it's a shell command if no adb prefix
+                const result = await this.executeShellCommand(command);
+                if (result.trim()) {
+                    this.logToConsole(result, 'output');
+                } else {
+                    this.logToConsole('(no output)', 'info');
+                }
             }
         } catch (error) {
             this.logToConsole(`ERROR: ${error.message}`, 'error');
@@ -499,11 +529,9 @@ class WebAdbConsole {
         if (mode === 'adb') {
             adbConsole?.classList.remove('hidden');
             fastbootConsole?.classList.add('hidden');
-            document.getElementById('commandPrefix').textContent = 'adb shell';
         } else {
             adbConsole?.classList.add('hidden');
             fastbootConsole?.classList.remove('hidden');
-            document.getElementById('fastbootPrefix').textContent = 'fastboot';
         }
         
         this.logToConsole(`Switched to ${mode.toUpperCase()} mode`, 'info');
@@ -511,13 +539,8 @@ class WebAdbConsole {
 
     async executeFastbootCommand() {
         const commandInput = document.getElementById('fastbootCommandInput');
-        const command = commandInput?.value.trim();
-        if (!command) return;
-
-        if (!this.device) {
-            this.logToConsole('ERROR: No device connected', 'error');
-            return;
-        }
+        const fullCommand = commandInput?.value.trim();
+        if (!fullCommand) return;
 
         const executeBtn = document.getElementById('fastbootExecuteBtn');
         if (executeBtn) {
@@ -530,16 +553,48 @@ class WebAdbConsole {
         }
 
         try {
-            this.logToConsole(`$ fastboot ${command}`, 'command');
+            this.logToConsole(`$ ${fullCommand}`, 'command');
             
-            // For now, simulate fastboot commands through ADB
-            // In a real implementation, you'd use fastboot.js library
-            const result = await this.simulateFastbootCommand(command);
-            if (result.trim()) {
-                this.logToConsole(result, 'output');
-            } else {
-                this.logToConsole('(no output)', 'info');
+            // Parse the command to extract the fastboot part
+            let command = fullCommand;
+            if (fullCommand.startsWith('fastboot ')) {
+                command = fullCommand.substring('fastboot '.length);
             }
+            
+            // For fastboot mode, we need to handle device connection differently
+            if (command === 'devices') {
+                try {
+                    const devices = await navigator.usb.getDevices();
+                    if (devices.length > 0) {
+                        const device = devices[0];
+                        this.logToConsole(`${device.serialNumber || 'unknown'}\tfastboot`, 'output');
+                    } else {
+                        this.logToConsole('No devices found. Make sure device is in fastboot mode.', 'warning');
+                    }
+                } catch (error) {
+                    this.logToConsole('No fastboot devices found', 'warning');
+                }
+            } else if (command.startsWith('reboot')) {
+                if (this.adb) {
+                    // If we have ADB connection, try to reboot through ADB
+                    if (command === 'reboot bootloader' || command === 'reboot-bootloader') {
+                        const result = await this.executeShellCommand('reboot bootloader');
+                        this.logToConsole('Device rebooting to bootloader...', 'info');
+                        this.logToConsole('Wait for device to enter fastboot mode, then try fastboot commands.', 'warning');
+                    } else if (command === 'reboot') {
+                        const result = await this.executeShellCommand('reboot');
+                        this.logToConsole('Device rebooting...', 'info');
+                    }
+                } else {
+                    this.logToConsole('No ADB connection available to reboot device', 'error');
+                    this.logToConsole('Please manually reboot device to desired mode', 'info');
+                }
+            } else {
+                this.logToConsole('Fastboot mode requires device in bootloader/fastboot mode', 'warning');
+                this.logToConsole('Use "adb reboot bootloader" first to enter fastboot mode', 'info');
+                this.logToConsole(`Simulated: fastboot ${command}`, 'output');
+            }
+            
         } catch (error) {
             this.logToConsole(`ERROR: ${error.message}`, 'error');
         }

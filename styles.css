@@ -213,16 +213,6 @@ body {
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
-.input-prefix {
-    background: #667eea;
-    color: white;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-    font-size: 0.9rem;
-    font-weight: 500;
-    margin-right: 0.75rem;
-}
 
 .command-input {
     flex: 1;
