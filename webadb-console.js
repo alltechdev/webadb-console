@@ -35,6 +35,7 @@ class WebAdbConsole {
         // Mode switching
         document.getElementById('adbModeBtn')?.addEventListener('click', () => this.switchMode('adb'));
         document.getElementById('fastbootModeBtn')?.addEventListener('click', () => this.switchMode('fastboot'));
+        document.getElementById('scrcpyModeBtn')?.addEventListener('click', () => this.switchMode('scrcpy'));
 
         // ADB Console
         document.getElementById('executeBtn')?.addEventListener('click', () => this.executeCommand());
@@ -52,6 +53,18 @@ class WebAdbConsole {
         document.getElementById('clearConsoleBtn')?.addEventListener('click', () => this.clearConsole());
         document.getElementById('downloadConsoleBtn')?.addEventListener('click', () => this.downloadConsoleOutput());
         document.getElementById('copyConsoleBtn')?.addEventListener('click', () => this.copyConsoleOutput());
+
+        // Fastboot console controls
+        document.getElementById('clearFastbootConsoleBtn')?.addEventListener('click', () => this.clearFastbootConsole());
+        document.getElementById('downloadFastbootConsoleBtn')?.addEventListener('click', () => this.downloadFastbootConsoleOutput());
+        document.getElementById('copyFastbootConsoleBtn')?.addEventListener('click', () => this.copyFastbootConsoleOutput());
+
+        // Scrcpy controls
+        document.getElementById('startScrcpyBtn')?.addEventListener('click', () => this.startScrcpy());
+        document.getElementById('stopScrcpyBtn')?.addEventListener('click', () => this.stopScrcpy());
+        document.getElementById('clearScrcpyConsoleBtn')?.addEventListener('click', () => this.clearScrcpyConsole());
+        document.getElementById('downloadScrcpyConsoleBtn')?.addEventListener('click', () => this.downloadScrcpyConsoleOutput());
+        document.getElementById('copyScrcpyConsoleBtn')?.addEventListener('click', () => this.copyScrcpyConsoleOutput());
 
         // File flashing
         const fileUploadArea = document.getElementById('fileUploadArea');
@@ -294,6 +307,12 @@ class WebAdbConsole {
         try {
             this.logToConsole(`$ ${fullCommand}`, 'command');
             
+            // Validate that command starts with 'adb'
+            if (!fullCommand.startsWith('adb ')) {
+                this.logToConsole('ERROR: Command must start with "adb" (e.g., "adb shell getprop")', 'error');
+                throw new Error('Invalid command format');
+            }
+            
             // Parse the command to extract the shell part
             let command = fullCommand;
             if (fullCommand.startsWith('adb shell ')) {
@@ -453,8 +472,35 @@ class WebAdbConsole {
         consoleOutput.scrollTop = consoleOutput.scrollHeight;
     }
 
+    logToFastbootConsole(message, type = 'info') {
+        const consoleOutput = document.getElementById('fastbootConsoleOutput');
+        if (!consoleOutput) return;
+
+        const entry = document.createElement('div');
+        entry.className = `console-entry ${type}`;
+        
+        const timestamp = document.createElement('span');
+        timestamp.className = 'console-timestamp';
+        timestamp.textContent = `[${type.toUpperCase()}]`;
+        
+        const messageSpan = document.createElement('span');
+        messageSpan.className = 'console-message';
+        messageSpan.textContent = message;
+        
+        entry.appendChild(timestamp);
+        entry.appendChild(messageSpan);
+        
+        consoleOutput.appendChild(entry);
+        consoleOutput.scrollTop = consoleOutput.scrollHeight;
+    }
+
     clearConsole() {
         const consoleOutput = document.getElementById('consoleOutput');
+        if (consoleOutput) consoleOutput.innerHTML = '';
+    }
+
+    clearFastbootConsole() {
+        const consoleOutput = document.getElementById('fastbootConsoleOutput');
         if (consoleOutput) consoleOutput.innerHTML = '';
     }
 
@@ -502,6 +548,194 @@ class WebAdbConsole {
             .catch(() => this.showError('Failed to copy output'));
     }
 
+    downloadFastbootConsoleOutput() {
+        const consoleOutput = document.getElementById('fastbootConsoleOutput');
+        if (!consoleOutput || consoleOutput.children.length === 0) {
+            this.logToFastbootConsole('No console output to download', 'warning');
+            return;
+        }
+
+        const content = Array.from(consoleOutput.children)
+            .map(entry => entry.textContent)
+            .join('\n');
+
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const filename = `fastboot-console-output-${timestamp}.txt`;
+
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        this.logToFastbootConsole('Console output downloaded', 'success');
+    }
+
+    copyFastbootConsoleOutput() {
+        const consoleOutput = document.getElementById('fastbootConsoleOutput');
+        if (!consoleOutput || consoleOutput.children.length === 0) {
+            this.logToFastbootConsole('No console output to copy', 'warning');
+            return;
+        }
+        
+        const content = Array.from(consoleOutput.children)
+            .map(entry => entry.textContent)
+            .join('\n');
+            
+        navigator.clipboard.writeText(content)
+            .then(() => this.logToFastbootConsole('Console output copied to clipboard', 'success'))
+            .catch(() => this.logToFastbootConsole('Failed to copy output', 'error'));
+    }
+
+    logToScrcpyConsole(message, type = 'info') {
+        const consoleOutput = document.getElementById('scrcpyConsoleOutput');
+        if (!consoleOutput) return;
+
+        const entry = document.createElement('div');
+        entry.className = `console-entry ${type}`;
+        
+        const timestamp = document.createElement('span');
+        timestamp.className = 'console-timestamp';
+        timestamp.textContent = `[${type.toUpperCase()}]`;
+        
+        const messageSpan = document.createElement('span');
+        messageSpan.className = 'console-message';
+        messageSpan.textContent = message;
+        
+        entry.appendChild(timestamp);
+        entry.appendChild(messageSpan);
+        
+        consoleOutput.appendChild(entry);
+        consoleOutput.scrollTop = consoleOutput.scrollHeight;
+    }
+
+    clearScrcpyConsole() {
+        const consoleOutput = document.getElementById('scrcpyConsoleOutput');
+        if (consoleOutput) consoleOutput.innerHTML = '';
+    }
+
+    downloadScrcpyConsoleOutput() {
+        const consoleOutput = document.getElementById('scrcpyConsoleOutput');
+        if (!consoleOutput || consoleOutput.children.length === 0) {
+            this.logToScrcpyConsole('No console output to download', 'warning');
+            return;
+        }
+
+        const content = Array.from(consoleOutput.children)
+            .map(entry => entry.textContent)
+            .join('\n');
+
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const filename = `scrcpy-console-output-${timestamp}.txt`;
+
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        this.logToScrcpyConsole('Console output downloaded', 'success');
+    }
+
+    copyScrcpyConsoleOutput() {
+        const consoleOutput = document.getElementById('scrcpyConsoleOutput');
+        if (!consoleOutput || consoleOutput.children.length === 0) {
+            this.logToScrcpyConsole('No console output to copy', 'warning');
+            return;
+        }
+        
+        const content = Array.from(consoleOutput.children)
+            .map(entry => entry.textContent)
+            .join('\n');
+            
+        navigator.clipboard.writeText(content)
+            .then(() => this.logToScrcpyConsole('Console output copied to clipboard', 'success'))
+            .catch(() => this.logToScrcpyConsole('Failed to copy output', 'error'));
+    }
+
+    async startScrcpy() {
+        if (!this.adb) {
+            this.logToScrcpyConsole('Please connect device first', 'error');
+            return;
+        }
+
+        const startBtn = document.getElementById('startScrcpyBtn');
+        const stopBtn = document.getElementById('stopScrcpyBtn');
+        
+        if (startBtn) startBtn.disabled = true;
+        if (stopBtn) stopBtn.disabled = false;
+
+        this.logToScrcpyConsole('Starting screen mirror...', 'info');
+        this.logToScrcpyConsole('Note: This is a simulation of scrcpy functionality', 'warning');
+        this.logToScrcpyConsole('Real scrcpy integration would require additional WebAssembly or server components', 'info');
+
+        // Simulate scrcpy startup
+        setTimeout(() => {
+            this.logToScrcpyConsole('Screen mirror started (simulated)', 'success');
+            this.showScrcpyPlaceholder();
+        }, 2000);
+    }
+
+    async stopScrcpy() {
+        const startBtn = document.getElementById('startScrcpyBtn');
+        const stopBtn = document.getElementById('stopScrcpyBtn');
+        
+        if (startBtn) startBtn.disabled = false;
+        if (stopBtn) stopBtn.disabled = true;
+
+        this.logToScrcpyConsole('Stopping screen mirror...', 'info');
+        this.hideScrcpyDisplay();
+        this.logToScrcpyConsole('Screen mirror stopped', 'success');
+    }
+
+    showScrcpyPlaceholder() {
+        const placeholder = document.querySelector('.scrcpy-placeholder');
+        const canvas = document.getElementById('scrcpyCanvas');
+        
+        if (placeholder) placeholder.style.display = 'none';
+        if (canvas) {
+            canvas.style.display = 'block';
+            // Create a placeholder pattern on canvas
+            const ctx = canvas.getContext('2d');
+            canvas.width = 400;
+            canvas.height = 600;
+            
+            // Create a gradient background
+            const gradient = ctx.createLinearGradient(0, 0, 400, 600);
+            gradient.addColorStop(0, '#667eea');
+            gradient.addColorStop(1, '#764ba2');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 400, 600);
+            
+            // Add text
+            ctx.fillStyle = 'white';
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Scrcpy Simulation', 200, 280);
+            ctx.font = '16px Arial';
+            ctx.fillText('Device screen would appear here', 200, 320);
+            ctx.fillText('with real scrcpy integration', 200, 340);
+        }
+    }
+
+    hideScrcpyDisplay() {
+        const placeholder = document.querySelector('.scrcpy-placeholder');
+        const canvas = document.getElementById('scrcpyCanvas');
+        
+        if (placeholder) placeholder.style.display = 'block';
+        if (canvas) canvas.style.display = 'none';
+    }
+
     showSuccess(message) {
         this.logToConsole(message, 'success');
     }
@@ -520,17 +754,25 @@ class WebAdbConsole {
         // Update mode buttons
         document.getElementById('adbModeBtn')?.classList.toggle('active', mode === 'adb');
         document.getElementById('fastbootModeBtn')?.classList.toggle('active', mode === 'fastboot');
+        document.getElementById('scrcpyModeBtn')?.classList.toggle('active', mode === 'scrcpy');
         
         // Update console visibility
         const adbConsole = document.getElementById('adbConsoleCard');
         const fastbootConsole = document.getElementById('fastbootConsoleCard');
+        const scrcpyConsole = document.getElementById('scrcpyConsoleCard');
         
+        // Hide all consoles first
+        adbConsole?.classList.add('hidden');
+        fastbootConsole?.classList.add('hidden');
+        scrcpyConsole?.classList.add('hidden');
+        
+        // Show the selected console
         if (mode === 'adb') {
             adbConsole?.classList.remove('hidden');
-            fastbootConsole?.classList.add('hidden');
-        } else {
-            adbConsole?.classList.add('hidden');
+        } else if (mode === 'fastboot') {
             fastbootConsole?.classList.remove('hidden');
+        } else if (mode === 'scrcpy') {
+            scrcpyConsole?.classList.remove('hidden');
         }
         
         this.logToConsole(`Switched to ${mode.toUpperCase()} mode`, 'info');
@@ -552,7 +794,13 @@ class WebAdbConsole {
         }
 
         try {
-            this.logToConsole(`$ ${fullCommand}`, 'command');
+            this.logToFastbootConsole(`$ ${fullCommand}`, 'command');
+            
+            // Validate that command starts with 'fastboot'
+            if (!fullCommand.startsWith('fastboot ')) {
+                this.logToFastbootConsole('ERROR: Command must start with "fastboot" (e.g., "fastboot devices")', 'error');
+                throw new Error('Invalid command format');
+            }
             
             // Parse the command to extract the fastboot part
             let command = fullCommand;
@@ -566,36 +814,36 @@ class WebAdbConsole {
                     const devices = await navigator.usb.getDevices();
                     if (devices.length > 0) {
                         const device = devices[0];
-                        this.logToConsole(`${device.serialNumber || 'unknown'}\tfastboot`, 'output');
+                        this.logToFastbootConsole(`${device.serialNumber || 'unknown'}\tfastboot`, 'output');
                     } else {
-                        this.logToConsole('No devices found. Make sure device is in fastboot mode.', 'warning');
+                        this.logToFastbootConsole('No devices found. Make sure device is in fastboot mode.', 'warning');
                     }
                 } catch (error) {
-                    this.logToConsole('No fastboot devices found', 'warning');
+                    this.logToFastbootConsole('No fastboot devices found', 'warning');
                 }
             } else if (command.startsWith('reboot')) {
                 if (this.adb) {
                     // If we have ADB connection, try to reboot through ADB
                     if (command === 'reboot bootloader' || command === 'reboot-bootloader') {
                         const result = await this.executeShellCommand('reboot bootloader');
-                        this.logToConsole('Device rebooting to bootloader...', 'info');
-                        this.logToConsole('Wait for device to enter fastboot mode, then try fastboot commands.', 'warning');
+                        this.logToFastbootConsole('Device rebooting to bootloader...', 'info');
+                        this.logToFastbootConsole('Wait for device to enter fastboot mode, then try fastboot commands.', 'warning');
                     } else if (command === 'reboot') {
                         const result = await this.executeShellCommand('reboot');
-                        this.logToConsole('Device rebooting...', 'info');
+                        this.logToFastbootConsole('Device rebooting...', 'info');
                     }
                 } else {
-                    this.logToConsole('No ADB connection available to reboot device', 'error');
-                    this.logToConsole('Please manually reboot device to desired mode', 'info');
+                    this.logToFastbootConsole('No ADB connection available to reboot device', 'error');
+                    this.logToFastbootConsole('Please manually reboot device to desired mode', 'info');
                 }
             } else {
-                this.logToConsole('Fastboot mode requires device in bootloader/fastboot mode', 'warning');
-                this.logToConsole('Use "adb reboot bootloader" first to enter fastboot mode', 'info');
-                this.logToConsole(`Simulated: fastboot ${command}`, 'output');
+                this.logToFastbootConsole('Fastboot mode requires device in bootloader/fastboot mode', 'warning');
+                this.logToFastbootConsole('Use "adb reboot bootloader" first to enter fastboot mode', 'info');
+                this.logToFastbootConsole(`Simulated: fastboot ${command}`, 'output');
             }
             
         } catch (error) {
-            this.logToConsole(`ERROR: ${error.message}`, 'error');
+            this.logToFastbootConsole(`ERROR: ${error.message}`, 'error');
         }
 
         if (executeBtn) {
@@ -636,7 +884,7 @@ class WebAdbConsole {
     }
 
     addToFlashQueue(file) {
-        const supportedTypes = ['.img', '.zip', '.bin'];
+        const supportedTypes = ['.img', '.zip', '.bin', '.apk'];
         const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
         
         if (!supportedTypes.includes(fileExtension)) {
@@ -664,6 +912,7 @@ class WebAdbConsole {
 
     guessPartition(filename) {
         const name = filename.toLowerCase();
+        if (name.endsWith('.apk')) return 'apk-install';
         if (name.includes('boot')) return 'boot';
         if (name.includes('recovery')) return 'recovery';
         if (name.includes('system')) return 'system';
@@ -698,6 +947,7 @@ class WebAdbConsole {
                         <div class="partition-selector">
                             <label>Partition:</label>
                             <select data-index="${index}" class="partition-select">
+                                <option value="apk-install" ${item.partition === 'apk-install' ? 'selected' : ''}>APK Install</option>
                                 <option value="boot" ${item.partition === 'boot' ? 'selected' : ''}>boot</option>
                                 <option value="recovery" ${item.partition === 'recovery' ? 'selected' : ''}>recovery</option>
                                 <option value="system" ${item.partition === 'system' ? 'selected' : ''}>system</option>
