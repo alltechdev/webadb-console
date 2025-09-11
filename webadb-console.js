@@ -1435,12 +1435,45 @@ class WebAdbConsole {
 
             this.logToScrcpyConsole('Pushing server to device...', 'info');
 
-            // Push server to device using ADB
             const remotePath = '/data/local/tmp/scrcpy-server.jar';
-            await this.adb.sync.write(remotePath, serverBytes);
             
-            this.logToScrcpyConsole('Server pushed successfully', 'success');
-            return remotePath;
+            try {
+                // Use the ADB sync protocol to push the file
+                const syncService = await this.adb.sync.start();
+                try {
+                    await syncService.write(remotePath, serverBytes, undefined, (writtenBytes, totalBytes) => {
+                        const progress = Math.round((writtenBytes / totalBytes) * 100);
+                        this.logToScrcpyConsole(`Pushing... ${progress}%`, 'info');
+                    });
+                    this.logToScrcpyConsole('Server pushed successfully', 'success');
+                } finally {
+                    await syncService.close();
+                }
+                
+                return remotePath;
+            } catch (syncError) {
+                // Fallback: try using shell command to create the file
+                this.logToScrcpyConsole('Sync failed, trying shell command method...', 'warning');
+                
+                // Convert bytes to base64 and use shell commands
+                const chunkSize = 1024; // Process in smaller chunks to avoid command length limits
+                await this.executeShellCommand(`rm -f ${remotePath}`); // Remove existing file
+                
+                for (let i = 0; i < serverBytes.length; i += chunkSize) {
+                    const chunk = serverBytes.slice(i, i + chunkSize);
+                    const base64Chunk = btoa(String.fromCharCode(...chunk));
+                    const isFirst = i === 0;
+                    const redirectOp = isFirst ? '>' : '>>';
+                    
+                    await this.executeShellCommand(`echo '${base64Chunk}' | base64 -d ${redirectOp} ${remotePath}`);
+                    
+                    const progress = Math.round(((i + chunk.length) / serverBytes.length) * 100);
+                    this.logToScrcpyConsole(`Pushing via shell... ${progress}%`, 'info');
+                }
+                
+                this.logToScrcpyConsole('Server pushed via shell command', 'success');
+                return remotePath;
+            }
 
         } catch (error) {
             // Provide helpful error message with manual upload option
