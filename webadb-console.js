@@ -1325,13 +1325,53 @@ class WebAdbConsole {
             try {
                 this.logToConsole(`Installing ${item.name}...`, 'info');
                 
-                // Read the APK file as ArrayBuffer
+                // Transfer APK to device and install using shell commands
                 const arrayBuffer = await item.file.arrayBuffer();
                 const uint8Array = new Uint8Array(arrayBuffer);
                 
-                // Use ADB to install the APK
-                const result = await this.adb.install(uint8Array);
-                this.logToConsole(`Successfully installed ${item.name}`, 'success');
+                // Create temporary file path on device
+                const tempPath = `/data/local/tmp/${item.name}`;
+                
+                this.logToConsole(`Transferring ${item.name} to device...`, 'info');
+                
+                // Transfer using the same method as scrcpy server
+                await this.executeShellCommand(`rm -f ${tempPath}`);
+                
+                // Convert to hex for reliable transfer
+                const hexString = Array.from(uint8Array)
+                    .map(byte => byte.toString(16).padStart(2, '0'))
+                    .join('');
+                
+                const chunkSize = 2048;
+                for (let i = 0; i < hexString.length; i += chunkSize) {
+                    const chunk = hexString.slice(i, i + chunkSize);
+                    const isFirst = i === 0;
+                    const redirectOp = isFirst ? '>' : '>>';
+                    
+                    const hexPairs = chunk.match(/.{2}/g) || [];
+                    const printfArgs = hexPairs.map(hex => `\\x${hex}`).join('');
+                    
+                    await this.executeShellCommand(`printf '${printfArgs}' ${redirectOp} ${tempPath}`);
+                    
+                    const progress = Math.round(((i + chunk.length) / hexString.length) * 100);
+                    if (progress % 20 === 0) {
+                        this.logToConsole(`Transferring ${item.name}... ${progress}%`, 'info');
+                    }
+                }
+                
+                this.logToConsole(`Installing ${item.name}...`, 'info');
+                
+                // Install the APK using pm install
+                const result = await this.executeShellCommand(`pm install ${tempPath}`);
+                
+                // Clean up temporary file
+                await this.executeShellCommand(`rm -f ${tempPath}`);
+                
+                if (result.includes('Success')) {
+                    this.logToConsole(`Successfully installed ${item.name}`, 'success');
+                } else {
+                    throw new Error(result);
+                }
                 
             } catch (error) {
                 this.logToConsole(`Failed to install ${item.name}: ${error.message}`, 'error');
@@ -1659,7 +1699,7 @@ class WebAdbConsole {
     }
 
     async handleMouseEvent(event, type) {
-        if (!this.scrcpyControlSocket) return;
+        if (!this.scrcpyControlSocket || !this.isScrcpyRunning) return;
 
         const rect = event.target.getBoundingClientRect();
         const x = Math.round((event.clientX - rect.left) * (1920 / rect.width));
@@ -1680,7 +1720,7 @@ class WebAdbConsole {
     }
 
     async handleKeyEvent(event, type) {
-        if (!this.scrcpyControlSocket) return;
+        if (!this.scrcpyControlSocket || !this.isScrcpyRunning) return;
 
         // Send key event to device (simplified)
         const keyData = new Uint8Array(8);
@@ -1731,16 +1771,9 @@ class WebAdbConsole {
                 this.scrcpyServer = null;
             }
 
-            // Close sockets
-            if (this.scrcpyVideoSocket) {
-                await this.scrcpyVideoSocket.close();
-                this.scrcpyVideoSocket = null;
-            }
-
-            if (this.scrcpyControlSocket) {
-                await this.scrcpyControlSocket.close();
-                this.scrcpyControlSocket = null;
-            }
+            // Reset socket references (no actual sockets to close in demo mode)
+            this.scrcpyVideoSocket = null;
+            this.scrcpyControlSocket = null;
 
             // Remove port forwarding
             if (this.adb) {
