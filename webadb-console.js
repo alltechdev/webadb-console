@@ -1389,20 +1389,6 @@ class WebAdbConsole {
                     return new Uint8Array(await response.arrayBuffer());
                 },
                 
-                // Method 4: Check for manually uploaded server
-                async () => {
-                    this.logToScrcpyConsole('Checking for manually uploaded server...', 'info');
-                    const fileInput = document.getElementById('scrcpyServerFile');
-                    
-                    if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
-                        throw new Error('No manual server file uploaded');
-                    }
-                    
-                    const file = fileInput.files[0];
-                    this.logToScrcpyConsole(`Using uploaded file: ${file.name}`, 'success');
-                    
-                    return new Uint8Array(await file.arrayBuffer());
-                },
                 
                 // Method 4: Use a small embedded server (for demo)
                 async () => {
@@ -1553,8 +1539,10 @@ class WebAdbConsole {
             // Wait a bit more for server to be ready
             await new Promise(resolve => setTimeout(resolve, 2000));
             
-            // For WebADB, we need to connect via subprocess socket
-            const videoSocket = await this.adb.transport.createSocket('tcp:27183');
+            // Connect to the forwarded port using ADB transport
+            const videoSocket = await this.adb.transport.createSocket({
+                service: 'tcp:27183'
+            });
             this.scrcpyVideoSocket = videoSocket;
 
             // Set up video decoding
