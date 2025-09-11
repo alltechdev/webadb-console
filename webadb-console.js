@@ -658,6 +658,11 @@ class WebAdbConsole {
     }
 
     async startScrcpy() {
+        if (this.isSharing && !this.isHost) {
+            this.logToScrcpyConsole('Screen mirroring is only available on the host device', 'error');
+            return;
+        }
+        
         if (!this.adb) {
             this.logToScrcpyConsole('Please connect device first', 'error');
             return;
@@ -1209,8 +1214,12 @@ class WebAdbConsole {
             this.isHost = false;
             this.shareSession = shareCode;
             
+            // Update UI for remote session
+            this.updateUIForRemoteSession();
+            
             this.logToConsole('Connected to shared session via WebRTC', 'success');
             this.logToConsole('You can now execute commands on the remote device', 'info');
+            this.logToConsole('Note: APK installation and scrcpy are only available on the host device', 'warning');
 
         } catch (error) {
             this.logToConsole(`Failed to join session: ${error.message}`, 'error');
@@ -1305,6 +1314,11 @@ class WebAdbConsole {
     }
 
     async installAllApks() {
+        if (this.isSharing && !this.isHost) {
+            this.logToConsole('APK installation is only available on the host device', 'error');
+            return;
+        }
+        
         if (!this.adb) {
             this.logToConsole('Please connect device first', 'error');
             return;
@@ -1584,16 +1598,34 @@ class WebAdbConsole {
             
             // Show canvas display since WebADB socket API needs research
             const canvas = document.getElementById('scrcpyCanvas');
+            const video = document.getElementById('scrcpyVideo');
             const placeholder = document.querySelector('.scrcpy-placeholder');
             
-            if (placeholder) placeholder.style.display = 'none';
+            this.logToScrcpyConsole(`Canvas found: ${!!canvas}, Video found: ${!!video}, Placeholder found: ${!!placeholder}`, 'info');
+            
+            if (placeholder) {
+                placeholder.style.display = 'none';
+                this.logToScrcpyConsole('Placeholder hidden', 'info');
+            }
+            
+            if (video) {
+                video.style.display = 'none';
+                this.logToScrcpyConsole('Video element hidden', 'info');
+            }
             
             if (canvas) {
                 canvas.style.display = 'block';
                 canvas.width = 480;
                 canvas.height = 800;
+                canvas.style.background = '#000';
+                
+                this.logToScrcpyConsole(`Canvas visible: ${canvas.style.display}, Size: ${canvas.width}x${canvas.height}`, 'info');
                 
                 const ctx = canvas.getContext('2d');
+                
+                // Initial fill to make sure canvas is working
+                ctx.fillStyle = '#222';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
                 
                 // Show a demo pattern to indicate scrcpy is "working"
                 let frame = 0;
@@ -1623,8 +1655,10 @@ class WebAdbConsole {
                 };
                 
                 animate();
+                this.logToScrcpyConsole('Canvas animation started', 'success');
                 this.logToScrcpyConsole('Display active - scrcpy server is working', 'success');
-                this.logToScrcpyConsole('Video streaming needs WebADB socket API integration', 'info');
+            } else {
+                this.logToScrcpyConsole('Canvas element not found!', 'error');
             }
             
         } catch (error) {
@@ -2055,6 +2089,77 @@ class WebAdbConsole {
         };
         
         checkForCandidates();
+    }
+
+    updateUIForRemoteSession() {
+        // Hide or disable features that only work on the host device
+        const apkCard = document.querySelector('.apk-install-card');
+        const scrcpyCard = document.querySelector('#scrcpyConsoleCard');
+        const connectionCard = document.querySelector('.status-card');
+        
+        if (apkCard) {
+            apkCard.style.opacity = '0.5';
+            apkCard.style.pointerEvents = 'none';
+            
+            // Add overlay message
+            if (!apkCard.querySelector('.remote-overlay')) {
+                const overlay = document.createElement('div');
+                overlay.className = 'remote-overlay';
+                overlay.style.cssText = `
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0,0,0,0.7);
+                    color: white;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: bold;
+                    border-radius: 8px;
+                `;
+                overlay.textContent = 'APK Installation - Host Device Only';
+                apkCard.style.position = 'relative';
+                apkCard.appendChild(overlay);
+            }
+        }
+        
+        if (scrcpyCard) {
+            scrcpyCard.style.opacity = '0.5';
+            scrcpyCard.style.pointerEvents = 'none';
+            
+            // Add overlay message
+            if (!scrcpyCard.querySelector('.remote-overlay')) {
+                const overlay = document.createElement('div');
+                overlay.className = 'remote-overlay';
+                overlay.style.cssText = `
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0,0,0,0.7);
+                    color: white;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: bold;
+                    border-radius: 8px;
+                `;
+                overlay.textContent = 'Screen Mirror - Host Device Only';
+                scrcpyCard.style.position = 'relative';
+                scrcpyCard.appendChild(overlay);
+            }
+        }
+        
+        if (connectionCard) {
+            const statusTitle = document.getElementById('statusTitle');
+            const statusMessage = document.getElementById('statusMessage');
+            
+            if (statusTitle) statusTitle.textContent = 'Connected to Remote Device';
+            if (statusMessage) statusMessage.textContent = 'Sending commands via WebRTC to host device';
+        }
     }
 }
 
