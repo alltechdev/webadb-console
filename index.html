@@ -161,6 +161,63 @@
                 </div>
             </div>
 
+            <!-- Scrcpy Screen Mirror Card -->
+            <div class="card console-card" id="scrcpyConsoleCard">
+                <div class="console-header">
+                    <h2>Screen Mirror (Scrcpy)</h2>
+                    <p>Real-time screen mirroring and device control</p>
+                </div>
+
+                <div class="scrcpy-controls">
+                    <button class="btn btn-primary btn-lg" id="startScrcpyBtn" disabled>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="5,3 19,12 5,21"></polygon>
+                        </svg>
+                        Start Screen Mirror
+                    </button>
+                    <button class="btn btn-secondary btn-lg" id="stopScrcpyBtn" disabled>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="6" y="6" width="12" height="12"></rect>
+                        </svg>
+                        Stop Mirror
+                    </button>
+                    <div class="scrcpy-options">
+                        <label>
+                            <input type="checkbox" id="scrcpyStayAwake"> Keep device awake
+                        </label>
+                        <label>
+                            <input type="checkbox" id="scrcpyTurnScreenOff"> Turn screen off
+                        </label>
+                    </div>
+                </div>
+
+                <div class="scrcpy-display-container">
+                    <div class="scrcpy-display" id="scrcpyDisplay">
+                        <div class="scrcpy-placeholder">
+                            <svg width="96" height="96" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                                <line x1="8" y1="21" x2="16" y2="21"></line>
+                                <line x1="12" y1="17" x2="12" y2="21"></line>
+                            </svg>
+                            <p>Device screen will appear here</p>
+                            <p class="note">Start screen mirror to begin</p>
+                        </div>
+                        <canvas id="scrcpyCanvas" style="display: none;"></canvas>
+                        <video id="scrcpyVideo" style="display: none; max-width: 100%; height: auto;" autoplay muted playsinline></video>
+                    </div>
+                </div>
+
+                <div class="console-output-container">
+                    <h3>Console Output</h3>
+                    <div class="console-output" id="scrcpyConsoleOutput">
+                    </div>
+                    <div class="console-footer">
+                        <button class="btn btn-success btn-lg" id="copyScrcpyConsoleBtn">Copy Output</button>
+                        <button class="btn btn-secondary btn-lg" id="clearScrcpyConsoleBtn">Clear Output</button>
+                        <button class="btn btn-primary btn-lg" id="downloadScrcpyConsoleBtn">Download Output</button>
+                    </div>
+                </div>
+            </div>
 
         </div>
     </main>

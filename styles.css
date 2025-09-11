@@ -583,9 +583,34 @@ body {
 /* Scrcpy specific styles */
 .scrcpy-controls {
     display: flex;
+    flex-direction: column;
     gap: 1rem;
     margin-bottom: 2rem;
-    justify-content: center;
+    align-items: center;
+}
+
+.scrcpy-controls > div:first-child {
+    display: flex;
+    gap: 1rem;
+}
+
+.scrcpy-options {
+    display: flex;
+    gap: 2rem;
+    margin-top: 1rem;
+}
+
+.scrcpy-options label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: #495057;
+    cursor: pointer;
+}
+
+.scrcpy-options input[type="checkbox"] {
+    margin: 0;
 }
 
 .scrcpy-display-container {
