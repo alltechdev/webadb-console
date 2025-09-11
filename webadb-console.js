@@ -1549,8 +1549,12 @@ class WebAdbConsole {
         this.logToScrcpyConsole('Setting up video stream...', 'info');
 
         try {
-            // Connect to video socket
-            const videoSocket = await this.adb.tcp.connect(27183);
+            // Connect to video socket through reverse tunnel  
+            // Wait a bit more for server to be ready
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // For WebADB, we need to connect via subprocess socket
+            const videoSocket = await this.adb.transport.createSocket('tcp:27183');
             this.scrcpyVideoSocket = videoSocket;
 
             // Set up video decoding
