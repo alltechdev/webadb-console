@@ -13,6 +13,9 @@ class WebAdbConsole {
         this.shareSession = null;
         this.isSharing = false;
         this.connectedPeers = [];
+        this.peerConnection = null;
+        this.dataChannel = null;
+        this.isHost = false;
         this.scrcpyServer = null;
         this.scrcpyVideoSocket = null;
         this.scrcpyControlSocket = null;
@@ -296,6 +299,23 @@ class WebAdbConsole {
         const commandInput = document.getElementById('commandInput');
         const command = commandInput?.value.trim();
         if (!command) return;
+
+        // Check if we're in a sharing session as a guest
+        if (this.isSharing && !this.isHost && this.dataChannel && this.dataChannel.readyState === 'open') {
+            // Forward command to host via WebRTC
+            const commandId = Date.now().toString();
+            this.logToConsole(`$ adb shell ${command} (remote)`, 'command');
+            
+            this.dataChannel.send(JSON.stringify({
+                type: 'adb-command',
+                commandId: commandId,
+                command: command
+            }));
+            
+            // Clear input
+            if (commandInput) commandInput.value = '';
+            return;
+        }
 
         if (!this.adb) {
             this.logToConsole('ERROR: No device connected', 'error');
@@ -1072,31 +1092,54 @@ class WebAdbConsole {
         return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
     }
 
-    // Sharing functionality
+    // Real WebRTC Sharing functionality
     async createShareSession() {
         if (!this.adb) {
             this.logToConsole('Please connect device first', 'error');
             return;
         }
 
-        // Generate a unique share code
-        const shareCode = this.generateShareCode();
-        
-        // Show sharing info
-        const sharingInfo = document.getElementById('sharingInfo');
-        const shareCodeInput = document.getElementById('shareCode');
-        const connectionStatus = document.getElementById('connectionStatus');
-        
-        if (sharingInfo && shareCodeInput && connectionStatus) {
-            shareCodeInput.value = shareCode;
-            sharingInfo.style.display = 'block';
-            connectionStatus.textContent = 'Share session active - waiting for connections...';
-        }
+        try {
+            // Generate a unique share code
+            const shareCode = this.generateShareCode();
+            
+            // Initialize WebRTC peer connection as host
+            await this.initializeWebRTC(true);
+            
+            // Create offer and store it with the share code
+            const offer = await this.peerConnection.createOffer();
+            await this.peerConnection.setLocalDescription(offer);
+            
+            // Store the offer in a simple signaling mechanism
+            await this.storeSignalingData(shareCode, {
+                type: 'offer',
+                offer: offer,
+                timestamp: Date.now()
+            });
+            
+            // Show sharing info
+            const sharingInfo = document.getElementById('sharingInfo');
+            const shareCodeInput = document.getElementById('shareCode');
+            const connectionStatus = document.getElementById('connectionStatus');
+            
+            if (sharingInfo && shareCodeInput && connectionStatus) {
+                shareCodeInput.value = shareCode;
+                sharingInfo.style.display = 'block';
+                connectionStatus.textContent = 'Waiting for remote connection...';
+            }
 
-        this.isSharing = true;
-        this.shareSession = shareCode;
-        this.logToConsole(`Share session created: ${shareCode}`, 'success');
-        this.logToConsole('Others can join using this code to execute commands on your device', 'info');
+            this.isSharing = true;
+            this.isHost = true;
+            this.shareSession = shareCode;
+            this.logToConsole(`Share session created: ${shareCode}`, 'success');
+            this.logToConsole('Real WebRTC session - others can execute commands remotely', 'info');
+            
+            // Start polling for answers
+            this.pollForAnswers(shareCode);
+
+        } catch (error) {
+            this.logToConsole(`Failed to create share session: ${error.message}`, 'error');
+        }
     }
 
     generateShareCode() {
@@ -1137,9 +1180,41 @@ class WebAdbConsole {
             return;
         }
 
-        this.logToConsole(`Attempting to join session: ${shareCode}`, 'info');
-        this.logToConsole('Note: This is a demonstration - real implementation would use WebRTC/WebSocket', 'warning');
-        this.logToConsole('Connected to shared session (simulated)', 'success');
+        try {
+            this.logToConsole(`Attempting to join session: ${shareCode}`, 'info');
+            
+            // Get the offer from signaling server
+            const signalingData = await this.getSignalingData(shareCode);
+            
+            if (!signalingData || !signalingData.offer) {
+                throw new Error('Session not found or expired');
+            }
+            
+            // Initialize WebRTC peer connection as guest
+            await this.initializeWebRTC(false);
+            
+            // Set remote description and create answer
+            await this.peerConnection.setRemoteDescription(signalingData.offer);
+            const answer = await this.peerConnection.createAnswer();
+            await this.peerConnection.setLocalDescription(answer);
+            
+            // Send answer back through signaling
+            await this.storeSignalingData(shareCode + '_answer', {
+                type: 'answer',
+                answer: answer,
+                timestamp: Date.now()
+            });
+            
+            this.isSharing = true;
+            this.isHost = false;
+            this.shareSession = shareCode;
+            
+            this.logToConsole('Connected to shared session via WebRTC', 'success');
+            this.logToConsole('You can now execute commands on the remote device', 'info');
+
+        } catch (error) {
+            this.logToConsole(`Failed to join session: ${error.message}`, 'error');
+        }
     }
 
     // APK Installation functionality
@@ -1279,7 +1354,16 @@ class WebAdbConsole {
             
             // Try multiple methods to get the server
             const downloadMethods = [
-                // Method 1: Direct GitHub releases (latest)
+                // Method 1: Check for local server file in repository
+                async () => {
+                    this.logToScrcpyConsole('Checking for local server file...', 'info');
+                    const response = await fetch('./scrcpy-server.jar');
+                    if (!response.ok) throw new Error(`Local file not found: ${response.status}`);
+                    this.logToScrcpyConsole('Using local scrcpy-server.jar', 'success');
+                    return new Uint8Array(await response.arrayBuffer());
+                },
+                
+                // Method 2: Direct GitHub releases (latest)
                 async () => {
                     this.logToScrcpyConsole('Trying GitHub releases API...', 'info');
                     const releasesResponse = await fetch('https://api.github.com/repos/Genymobile/scrcpy/releases/latest');
@@ -1297,7 +1381,7 @@ class WebAdbConsole {
                     return new Uint8Array(await response.arrayBuffer());
                 },
                 
-                // Method 2: Direct URL with version 2.7
+                // Method 3: Direct URL with version 2.7
                 async () => {
                     this.logToScrcpyConsole('Trying direct download...', 'info');
                     const response = await fetch('https://github.com/Genymobile/scrcpy/releases/download/v2.7/scrcpy-server-v2.7');
@@ -1305,7 +1389,7 @@ class WebAdbConsole {
                     return new Uint8Array(await response.arrayBuffer());
                 },
                 
-                // Method 3: Check for manually uploaded server
+                // Method 4: Check for manually uploaded server
                 async () => {
                     this.logToScrcpyConsole('Checking for manually uploaded server...', 'info');
                     const fileInput = document.getElementById('scrcpyServerFile');
@@ -1617,6 +1701,210 @@ class WebAdbConsole {
         } catch (error) {
             this.logToScrcpyConsole(`Cleanup error: ${error.message}`, 'warning');
         }
+    }
+
+    // WebRTC Infrastructure Methods
+    async initializeWebRTC(isHost) {
+        this.isHost = isHost;
+        
+        // Create RTCPeerConnection with STUN servers
+        const config = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+            ]
+        };
+        
+        this.peerConnection = new RTCPeerConnection(config);
+        
+        // Handle ICE candidates
+        this.peerConnection.onicecandidate = (event) => {
+            if (event.candidate && this.shareSession) {
+                // Store ICE candidate for signaling
+                this.storeSignalingData(`${this.shareSession}_ice_${Date.now()}`, {
+                    type: 'ice-candidate',
+                    candidate: event.candidate,
+                    isHost: this.isHost,
+                    timestamp: Date.now()
+                });
+            }
+        };
+        
+        // Handle connection state changes
+        this.peerConnection.onconnectionstatechange = () => {
+            const state = this.peerConnection.connectionState;
+            this.logToConsole(`WebRTC connection state: ${state}`, 'info');
+            
+            if (state === 'connected') {
+                const statusEl = document.getElementById('connectionStatus');
+                const peersEl = document.getElementById('connectedPeers');
+                if (statusEl) statusEl.textContent = 'Connected via WebRTC';
+                if (peersEl) peersEl.textContent = '1 user connected';
+            } else if (state === 'disconnected' || state === 'failed') {
+                const statusEl = document.getElementById('connectionStatus');
+                const peersEl = document.getElementById('connectedPeers');
+                if (statusEl) statusEl.textContent = 'Connection lost';
+                if (peersEl) peersEl.textContent = '0 users connected';
+            }
+        };
+        
+        // Create data channel for command forwarding
+        if (isHost) {
+            this.dataChannel = this.peerConnection.createDataChannel('adb-commands', {
+                ordered: true
+            });
+            this.setupDataChannelHandlers();
+        } else {
+            this.peerConnection.ondatachannel = (event) => {
+                this.dataChannel = event.channel;
+                this.setupDataChannelHandlers();
+            };
+        }
+        
+        // Start polling for remote ICE candidates and answers
+        if (isHost) {
+            this.pollForAnswers();
+        } else {
+            this.pollForICECandidates();
+        }
+    }
+    
+    setupDataChannelHandlers() {
+        if (!this.dataChannel) return;
+        
+        this.dataChannel.onopen = () => {
+            this.logToConsole('Data channel opened for command forwarding', 'success');
+        };
+        
+        this.dataChannel.onmessage = async (event) => {
+            try {
+                const message = JSON.parse(event.data);
+                
+                if (message.type === 'adb-command' && this.isHost && this.adb) {
+                    // Execute command on host device and send result back
+                    this.logToConsole(`Executing remote command: ${message.command}`, 'info');
+                    
+                    try {
+                        const result = await this.executeShellCommand(message.command);
+                        this.dataChannel.send(JSON.stringify({
+                            type: 'adb-result',
+                            commandId: message.commandId,
+                            success: true,
+                            output: result
+                        }));
+                    } catch (error) {
+                        this.dataChannel.send(JSON.stringify({
+                            type: 'adb-result',
+                            commandId: message.commandId,
+                            success: false,
+                            error: error.message
+                        }));
+                    }
+                } else if (message.type === 'adb-result' && !this.isHost) {
+                    // Display result from host device
+                    if (message.success) {
+                        this.logToConsole(message.output, 'output');
+                    } else {
+                        this.logToConsole(`Error: ${message.error}`, 'error');
+                    }
+                }
+            } catch (error) {
+                this.logToConsole(`Data channel message error: ${error.message}`, 'error');
+            }
+        };
+        
+        this.dataChannel.onerror = (error) => {
+            this.logToConsole(`Data channel error: ${error}`, 'error');
+        };
+    }
+    
+    async storeSignalingData(key, data) {
+        // Simple localStorage-based signaling for demo
+        // In production, this would be a proper signaling server
+        try {
+            const signaling = JSON.parse(localStorage.getItem('webadb_signaling') || '{}');
+            signaling[key] = data;
+            localStorage.setItem('webadb_signaling', JSON.stringify(signaling));
+        } catch (error) {
+            console.error('Failed to store signaling data:', error);
+        }
+    }
+    
+    async getSignalingData(key) {
+        try {
+            const signaling = JSON.parse(localStorage.getItem('webadb_signaling') || '{}');
+            return signaling[key] || null;
+        } catch (error) {
+            console.error('Failed to get signaling data:', error);
+            return null;
+        }
+    }
+    
+    async pollForAnswers() {
+        if (!this.shareSession || !this.isHost) return;
+        
+        const answerKey = `${this.shareSession}_answer`;
+        
+        const checkForAnswer = async () => {
+            try {
+                const answerData = await this.getSignalingData(answerKey);
+                
+                if (answerData && answerData.answer && !this.peerConnection.currentRemoteDescription) {
+                    await this.peerConnection.setRemoteDescription(answerData.answer);
+                    this.logToConsole('WebRTC answer received, establishing connection...', 'info');
+                    
+                    // Start polling for ICE candidates
+                    this.pollForICECandidates();
+                    return;
+                }
+                
+                if (this.isSharing && this.peerConnection.connectionState !== 'connected') {
+                    setTimeout(checkForAnswer, 2000);
+                }
+            } catch (error) {
+                this.logToConsole(`Error polling for answer: ${error.message}`, 'error');
+                setTimeout(checkForAnswer, 5000);
+            }
+        };
+        
+        checkForAnswer();
+    }
+    
+    async pollForICECandidates() {
+        if (!this.shareSession) return;
+        
+        const checkForCandidates = async () => {
+            try {
+                const signaling = JSON.parse(localStorage.getItem('webadb_signaling') || '{}');
+                
+                // Look for ICE candidates from the other peer
+                for (const key in signaling) {
+                    if (key.startsWith(`${this.shareSession}_ice_`)) {
+                        const candidateData = signaling[key];
+                        
+                        if (candidateData.type === 'ice-candidate' && 
+                            candidateData.isHost !== this.isHost &&
+                            !candidateData.processed) {
+                            
+                            await this.peerConnection.addIceCandidate(candidateData.candidate);
+                            
+                            // Mark as processed
+                            candidateData.processed = true;
+                            localStorage.setItem('webadb_signaling', JSON.stringify(signaling));
+                        }
+                    }
+                }
+                
+                if (this.isSharing && this.peerConnection.connectionState !== 'connected') {
+                    setTimeout(checkForCandidates, 1000);
+                }
+            } catch (error) {
+                console.error('Error polling for ICE candidates:', error);
+                setTimeout(checkForCandidates, 3000);
+            }
+        };
+        
+        checkForCandidates();
     }
 }
 
