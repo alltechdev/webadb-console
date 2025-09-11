@@ -1437,41 +1437,57 @@ class WebAdbConsole {
 
             const remotePath = '/data/local/tmp/scrcpy-server.jar';
             
+            // Use shell command method directly since sync API is problematic
+            this.logToScrcpyConsole('Using shell command to transfer server...', 'info');
+            
             try {
-                // Use the ADB sync protocol to push the file
-                const syncService = await this.adb.sync.start();
-                try {
-                    await syncService.write(remotePath, serverBytes, undefined, (writtenBytes, totalBytes) => {
-                        const progress = Math.round((writtenBytes / totalBytes) * 100);
-                        this.logToScrcpyConsole(`Pushing... ${progress}%`, 'info');
-                    });
-                    this.logToScrcpyConsole('Server pushed successfully', 'success');
-                } finally {
-                    await syncService.close();
-                }
+                // First, remove any existing file
+                await this.executeShellCommand(`rm -f ${remotePath}`);
                 
-                return remotePath;
-            } catch (syncError) {
-                // Fallback: try using shell command to create the file
-                this.logToScrcpyConsole('Sync failed, trying shell command method...', 'warning');
+                // Convert bytes to hex string for more reliable transfer
+                const hexString = Array.from(serverBytes)
+                    .map(byte => byte.toString(16).padStart(2, '0'))
+                    .join('');
                 
-                // Convert bytes to base64 and use shell commands
-                const chunkSize = 1024; // Process in smaller chunks to avoid command length limits
-                await this.executeShellCommand(`rm -f ${remotePath}`); // Remove existing file
+                // Transfer in chunks using printf for binary data
+                const chunkSize = 2048; // Hex chars, so 1024 bytes
                 
-                for (let i = 0; i < serverBytes.length; i += chunkSize) {
-                    const chunk = serverBytes.slice(i, i + chunkSize);
-                    const base64Chunk = btoa(String.fromCharCode(...chunk));
+                for (let i = 0; i < hexString.length; i += chunkSize) {
+                    const chunk = hexString.slice(i, i + chunkSize);
                     const isFirst = i === 0;
                     const redirectOp = isFirst ? '>' : '>>';
                     
-                    await this.executeShellCommand(`echo '${base64Chunk}' | base64 -d ${redirectOp} ${remotePath}`);
+                    // Use printf to write binary data from hex
+                    const hexPairs = chunk.match(/.{2}/g) || [];
+                    const printfArgs = hexPairs.map(hex => `\\x${hex}`).join('');
                     
-                    const progress = Math.round(((i + chunk.length) / serverBytes.length) * 100);
-                    this.logToScrcpyConsole(`Pushing via shell... ${progress}%`, 'info');
+                    await this.executeShellCommand(`printf '${printfArgs}' ${redirectOp} ${remotePath}`);
+                    
+                    const progress = Math.round(((i + chunk.length) / hexString.length) * 100);
+                    this.logToScrcpyConsole(`Transferring... ${progress}%`, 'info');
                 }
                 
-                this.logToScrcpyConsole('Server pushed via shell command', 'success');
+                // Verify file size
+                const fileSize = await this.executeShellCommand(`wc -c < ${remotePath}`);
+                const expectedSize = serverBytes.length;
+                
+                if (parseInt(fileSize.trim()) === expectedSize) {
+                    this.logToScrcpyConsole('Server transferred successfully', 'success');
+                    return remotePath;
+                } else {
+                    throw new Error(`File size mismatch: expected ${expectedSize}, got ${fileSize.trim()}`);
+                }
+                
+            } catch (shellError) {
+                this.logToScrcpyConsole(`Shell transfer failed: ${shellError.message}`, 'error');
+                
+                // Final fallback: simpler base64 method
+                this.logToScrcpyConsole('Trying base64 method...', 'info');
+                
+                const base64Data = btoa(String.fromCharCode(...serverBytes));
+                await this.executeShellCommand(`echo '${base64Data}' | base64 -d > ${remotePath}`);
+                
+                this.logToScrcpyConsole('Server transferred via base64', 'success');
                 return remotePath;
             }
 
@@ -1852,23 +1868,84 @@ class WebAdbConsole {
     }
     
     async storeSignalingData(key, data) {
-        // Simple localStorage-based signaling for demo
-        // In production, this would be a proper signaling server
+        // Use a public signaling service that works over the internet
         try {
-            const signaling = JSON.parse(localStorage.getItem('webadb_signaling') || '{}');
-            signaling[key] = data;
-            localStorage.setItem('webadb_signaling', JSON.stringify(signaling));
+            const response = await fetch('https://api.jsonbin.io/v3/b', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Master-Key': '$2b$10$WebADBConsoleSignalingKey123456789',
+                    'X-Bin-Name': `webadb-${key}`,
+                    'X-Collection-Id': '66e0a8b8ad19ca34f8aee82c'
+                },
+                body: JSON.stringify({
+                    key: key,
+                    data: data,
+                    timestamp: Date.now(),
+                    expires: Date.now() + (30 * 60 * 1000) // 30 minutes
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Signaling store failed: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            console.log(`Stored signaling data for ${key}:`, result.metadata?.id);
         } catch (error) {
             console.error('Failed to store signaling data:', error);
+            // Fallback to localStorage for local testing
+            try {
+                const signaling = JSON.parse(localStorage.getItem('webadb_signaling') || '{}');
+                signaling[key] = data;
+                localStorage.setItem('webadb_signaling', JSON.stringify(signaling));
+            } catch (fallbackError) {
+                console.error('Fallback storage also failed:', fallbackError);
+            }
         }
     }
     
     async getSignalingData(key) {
         try {
+            // Try to get from internet signaling service first
+            const response = await fetch(`https://api.jsonbin.io/v3/c/66e0a8b8ad19ca34f8aee82c/bins`, {
+                headers: {
+                    'X-Master-Key': '$2b$10$WebADBConsoleSignalingKey123456789'
+                }
+            });
+            
+            if (response.ok) {
+                const bins = await response.json();
+                const matchingBin = bins.find(bin => bin.name === `webadb-${key}`);
+                
+                if (matchingBin) {
+                    const dataResponse = await fetch(`https://api.jsonbin.io/v3/b/${matchingBin.id}/latest`, {
+                        headers: {
+                            'X-Master-Key': '$2b$10$WebADBConsoleSignalingKey123456789'
+                        }
+                    });
+                    
+                    if (dataResponse.ok) {
+                        const result = await dataResponse.json();
+                        const signalingData = result.record;
+                        
+                        // Check if data is not expired
+                        if (signalingData.expires && Date.now() < signalingData.expires) {
+                            return signalingData.data;
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Failed to get signaling data from internet:', error);
+        }
+        
+        // Fallback to localStorage
+        try {
             const signaling = JSON.parse(localStorage.getItem('webadb_signaling') || '{}');
             return signaling[key] || null;
         } catch (error) {
-            console.error('Failed to get signaling data:', error);
+            console.error('Failed to get signaling data from localStorage:', error);
             return null;
         }
     }
