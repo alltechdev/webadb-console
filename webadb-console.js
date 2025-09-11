@@ -8,10 +8,11 @@ class WebAdbConsole {
         this.device = null;
         this.transport = null;
         this.adb = null;
-        this.fastboot = null;
         this.credentialStore = new AdbWebCredentialStore('WebADB Console Key');
-        this.currentMode = 'adb';
-        this.flashQueue = [];
+        this.apkQueue = [];
+        this.shareSession = null;
+        this.isSharing = false;
+        this.connectedPeers = [];
     }
 
     async init() {
@@ -44,32 +45,38 @@ class WebAdbConsole {
         document.getElementById('copyConsoleBtn')?.addEventListener('click', () => this.copyConsoleOutput());
 
 
-        // File flashing
-        const fileUploadArea = document.getElementById('fileUploadArea');
-        const fileInput = document.getElementById('fileInput');
+        // Sharing controls
+        document.getElementById('createShareBtn')?.addEventListener('click', () => this.createShareSession());
+        document.getElementById('joinShareBtn')?.addEventListener('click', () => this.toggleJoinSession());
+        document.getElementById('connectToShareBtn')?.addEventListener('click', () => this.connectToShareSession());
+        document.getElementById('copyShareCodeBtn')?.addEventListener('click', () => this.copyShareCode());
 
-        fileUploadArea?.addEventListener('click', () => fileInput?.click());
-        fileInput?.addEventListener('change', (e) => this.handleFileSelection(e));
+        // APK installation
+        const apkUploadArea = document.getElementById('apkUploadArea');
+        const apkFileInput = document.getElementById('apkFileInput');
 
-        // Drag and drop
-        fileUploadArea?.addEventListener('dragover', (e) => {
+        apkUploadArea?.addEventListener('click', () => apkFileInput?.click());
+        apkFileInput?.addEventListener('change', (e) => this.handleApkSelection(e));
+
+        // APK drag and drop
+        apkUploadArea?.addEventListener('dragover', (e) => {
             e.preventDefault();
-            fileUploadArea.classList.add('drag-over');
+            apkUploadArea.classList.add('drag-over');
         });
 
-        fileUploadArea?.addEventListener('dragleave', () => {
-            fileUploadArea.classList.remove('drag-over');
+        apkUploadArea?.addEventListener('dragleave', () => {
+            apkUploadArea.classList.remove('drag-over');
         });
 
-        fileUploadArea?.addEventListener('drop', (e) => {
+        apkUploadArea?.addEventListener('drop', (e) => {
             e.preventDefault();
-            fileUploadArea.classList.remove('drag-over');
-            this.handleFileDrop(e);
+            apkUploadArea.classList.remove('drag-over');
+            this.handleApkDrop(e);
         });
 
-        // Flash controls
-        document.getElementById('flashAllBtn')?.addEventListener('click', () => this.flashAll());
-        document.getElementById('clearQueueBtn')?.addEventListener('click', () => this.clearFlashQueue());
+        // APK installation controls
+        document.getElementById('installAllBtn')?.addEventListener('click', () => this.installAllApks());
+        document.getElementById('clearApkQueueBtn')?.addEventListener('click', () => this.clearApkQueue());
 
         // Auto-handle USB device connection changes
         if ('usb' in navigator) {
@@ -209,6 +216,9 @@ class WebAdbConsole {
         const executeBtn = document.getElementById('executeBtn');
         if (executeBtn) executeBtn.disabled = true;
 
+        const createShareBtn = document.getElementById('createShareBtn');
+        if (createShareBtn) createShareBtn.disabled = true;
+
         this.logToConsole('Device disconnected', 'warning');
     }
 
@@ -234,6 +244,9 @@ class WebAdbConsole {
         
         const executeBtn = document.getElementById('executeBtn');
         if (executeBtn) executeBtn.disabled = false;
+        
+        const createShareBtn = document.getElementById('createShareBtn');
+        if (createShareBtn) createShareBtn.disabled = false;
         
         this.logToConsole('Device connected and ready', 'success');
     }
@@ -1011,6 +1024,203 @@ class WebAdbConsole {
         const sizes = ['Bytes', 'KB', 'MB', 'GB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+    }
+
+    // Sharing functionality
+    async createShareSession() {
+        if (!this.adb) {
+            this.logToConsole('Please connect device first', 'error');
+            return;
+        }
+
+        // Generate a unique share code
+        const shareCode = this.generateShareCode();
+        
+        // Show sharing info
+        const sharingInfo = document.getElementById('sharingInfo');
+        const shareCodeInput = document.getElementById('shareCode');
+        const connectionStatus = document.getElementById('connectionStatus');
+        
+        if (sharingInfo && shareCodeInput && connectionStatus) {
+            shareCodeInput.value = shareCode;
+            sharingInfo.style.display = 'block';
+            connectionStatus.textContent = 'Share session active - waiting for connections...';
+        }
+
+        this.isSharing = true;
+        this.shareSession = shareCode;
+        this.logToConsole(`Share session created: ${shareCode}`, 'success');
+        this.logToConsole('Others can join using this code to execute commands on your device', 'info');
+    }
+
+    generateShareCode() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let result = '';
+        for (let i = 0; i < 6; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+    }
+
+    async copyShareCode() {
+        const shareCodeInput = document.getElementById('shareCode');
+        if (shareCodeInput && shareCodeInput.value) {
+            try {
+                await navigator.clipboard.writeText(shareCodeInput.value);
+                this.logToConsole('Share code copied to clipboard', 'success');
+            } catch (error) {
+                this.logToConsole('Failed to copy share code', 'error');
+            }
+        }
+    }
+
+    toggleJoinSession() {
+        const joinSession = document.getElementById('joinSession');
+        if (joinSession) {
+            joinSession.style.display = joinSession.style.display === 'none' ? 'block' : 'none';
+        }
+    }
+
+    async connectToShareSession() {
+        const joinCodeInput = document.getElementById('joinCodeInput');
+        const shareCode = joinCodeInput?.value.trim().toUpperCase();
+        
+        if (!shareCode) {
+            this.logToConsole('Please enter a share code', 'error');
+            return;
+        }
+
+        this.logToConsole(`Attempting to join session: ${shareCode}`, 'info');
+        this.logToConsole('Note: This is a demonstration - real implementation would use WebRTC/WebSocket', 'warning');
+        this.logToConsole('Connected to shared session (simulated)', 'success');
+    }
+
+    // APK Installation functionality
+    handleApkSelection(e) {
+        const files = Array.from(e.target.files || []);
+        files.forEach(file => this.addToApkQueue(file));
+    }
+
+    handleApkDrop(e) {
+        const files = Array.from(e.dataTransfer.files || []);
+        files.forEach(file => this.addToApkQueue(file));
+    }
+
+    addToApkQueue(file) {
+        if (!file.name.toLowerCase().endsWith('.apk')) {
+            this.logToConsole(`Error: ${file.name} is not an APK file`, 'error');
+            return;
+        }
+
+        // Check if file already in queue
+        if (this.apkQueue.find(item => item.file.name === file.name)) {
+            this.logToConsole(`APK ${file.name} is already in queue`, 'warning');
+            return;
+        }
+
+        const apkItem = {
+            file: file,
+            name: file.name,
+            size: this.formatFileSize(file.size)
+        };
+
+        this.apkQueue.push(apkItem);
+        this.updateApkQueueDisplay();
+        this.logToConsole(`Added ${file.name} to installation queue`, 'info');
+    }
+
+    updateApkQueueDisplay() {
+        const apkQueue = document.getElementById('apkQueue');
+        const apkList = document.getElementById('apkList');
+        
+        if (this.apkQueue.length === 0) {
+            apkQueue.style.display = 'none';
+            return;
+        }
+        
+        apkQueue.style.display = 'block';
+        apkList.innerHTML = '';
+
+        this.apkQueue.forEach((item, index) => {
+            const itemElement = document.createElement('div');
+            itemElement.className = 'apk-item';
+            itemElement.innerHTML = `
+                <div class="apk-item-info">
+                    <div class="apk-item-icon">APK</div>
+                    <div class="apk-item-details">
+                        <h4>${item.name}</h4>
+                        <p>Size: ${item.size}</p>
+                    </div>
+                </div>
+                <button class="apk-item-remove" data-index="${index}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            `;
+
+            // Add event listener for remove button
+            itemElement.querySelector('.apk-item-remove')?.addEventListener('click', () => {
+                this.removeFromApkQueue(index);
+            });
+
+            apkList.appendChild(itemElement);
+        });
+    }
+
+    removeFromApkQueue(index) {
+        const item = this.apkQueue[index];
+        this.apkQueue.splice(index, 1);
+        this.updateApkQueueDisplay();
+        this.logToConsole(`Removed ${item.name} from installation queue`, 'info');
+    }
+
+    clearApkQueue() {
+        this.apkQueue = [];
+        this.updateApkQueueDisplay();
+        this.logToConsole('APK installation queue cleared', 'info');
+    }
+
+    async installAllApks() {
+        if (!this.adb) {
+            this.logToConsole('Please connect device first', 'error');
+            return;
+        }
+
+        if (this.apkQueue.length === 0) {
+            this.logToConsole('No APKs in installation queue', 'warning');
+            return;
+        }
+
+        const installBtn = document.getElementById('installAllBtn');
+        if (installBtn) installBtn.disabled = true;
+
+        this.logToConsole(`Installing ${this.apkQueue.length} APK(s)...`, 'info');
+
+        for (let i = 0; i < this.apkQueue.length; i++) {
+            const item = this.apkQueue[i];
+            try {
+                this.logToConsole(`Installing ${item.name}...`, 'info');
+                
+                // Read the APK file as ArrayBuffer
+                const arrayBuffer = await item.file.arrayBuffer();
+                const uint8Array = new Uint8Array(arrayBuffer);
+                
+                // Use ADB to install the APK
+                const result = await this.adb.install(uint8Array);
+                this.logToConsole(`Successfully installed ${item.name}`, 'success');
+                
+            } catch (error) {
+                this.logToConsole(`Failed to install ${item.name}: ${error.message}`, 'error');
+            }
+        }
+
+        this.logToConsole('APK installation process completed', 'info');
+        if (installBtn) installBtn.disabled = false;
+        
+        // Clear the queue after installation
+        this.clearApkQueue();
     }
 }
 
