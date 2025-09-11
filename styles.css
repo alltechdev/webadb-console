@@ -626,3 +626,144 @@ body {
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
+
+/* Sharing specific styles */
+.sharing-controls {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    justify-content: center;
+}
+
+.sharing-info {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.share-code-container {
+    margin-bottom: 1rem;
+}
+
+.share-code-container label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #495057;
+}
+
+.share-code-display {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.share-code-input {
+    flex: 1;
+    padding: 0.75rem;
+    border: 2px solid #dee2e6;
+    border-radius: 6px;
+    background: white;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    letter-spacing: 0.1em;
+    text-align: center;
+    font-size: 1.1rem;
+}
+
+.sharing-status {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 1rem;
+    border-top: 1px solid #dee2e6;
+}
+
+.sharing-status span {
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+#connectionStatus {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+#connectedPeers {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+/* APK Installation styles */
+.apk-queue {
+    margin-top: 1.5rem;
+}
+
+.install-controls {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.apk-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+.apk-item-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.apk-item-icon {
+    width: 40px;
+    height: 40px;
+    background: #28a745;
+    color: white;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.8rem;
+}
+
+.apk-item-details h4 {
+    margin: 0 0 0.25rem 0;
+    color: #495057;
+}
+
+.apk-item-details p {
+    margin: 0;
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.apk-item-remove {
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+
+.apk-item-remove:hover {
+    background: #c82333;
+}

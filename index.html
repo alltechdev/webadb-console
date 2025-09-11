@@ -47,6 +47,58 @@
                 </button>
             </div>
 
+            <!-- Sharing Card -->
+            <div class="card sharing-card">
+                <div class="console-header">
+                    <h2>Device Sharing</h2>
+                    <p>Share your connected device with others remotely</p>
+                </div>
+
+                <div class="sharing-controls">
+                    <button class="btn btn-primary btn-lg" id="createShareBtn" disabled>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+                            <polyline points="16,6 12,2 8,6"></polyline>
+                            <line x1="12" y1="2" x2="12" y2="15"></line>
+                        </svg>
+                        Create Share Link
+                    </button>
+                    <button class="btn btn-secondary btn-lg" id="joinShareBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                            <polyline points="10,17 15,12 10,7"></polyline>
+                            <line x1="15" y1="12" x2="3" y2="12"></line>
+                        </svg>
+                        Join Session
+                    </button>
+                </div>
+
+                <div class="sharing-info" id="sharingInfo" style="display: none;">
+                    <div class="share-code-container">
+                        <label>Share Code:</label>
+                        <div class="share-code-display">
+                            <input type="text" id="shareCode" class="share-code-input" readonly>
+                            <button class="btn btn-primary" id="copyShareCodeBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="sharing-status">
+                        <span id="connectionStatus">Waiting for connection...</span>
+                        <span id="connectedPeers">0 users connected</span>
+                    </div>
+                </div>
+
+                <div class="join-session" id="joinSession" style="display: none;">
+                    <div class="input-group">
+                        <input type="text" id="joinCodeInput" class="command-input" placeholder="Enter share code..." autocomplete="off">
+                        <button class="btn btn-primary" id="connectToShareBtn">Connect</button>
+                    </div>
+                </div>
+            </div>
 
             <!-- ADB Console Card -->
             <div class="card console-card" id="adbConsoleCard">
@@ -79,6 +131,35 @@
                 </div>
             </div>
 
+            <!-- APK Installation Card -->
+            <div class="card apk-install-card">
+                <div class="console-header">
+                    <h2>APK Installation</h2>
+                    <p>Upload and install APK files to your device</p>
+                </div>
+
+                <div class="file-upload-area" id="apkUploadArea">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14,2 14,8 20,8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10,9 9,9 8,9"></polyline>
+                    </svg>
+                    <p>Drop APK files here or click to browse</p>
+                    <p class="file-types">Supports: .apk files</p>
+                    <input type="file" id="apkFileInput" accept=".apk" multiple style="display: none;">
+                </div>
+
+                <div class="apk-queue" id="apkQueue" style="display: none;">
+                    <h3>Installation Queue</h3>
+                    <div id="apkList"></div>
+                    <div class="install-controls">
+                        <button class="btn btn-success" id="installAllBtn">Install All APKs</button>
+                        <button class="btn btn-secondary" id="clearApkQueueBtn">Clear Queue</button>
+                    </div>
+                </div>
+            </div>
 
             <!-- File Flashing Card -->
             <div class="card file-flash-card">
